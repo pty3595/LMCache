@@ -82,8 +82,10 @@ The **BUILD_HF3FS** environment variable controls compilation:
   ``mount_point``.
 - ``ior_entries`` (int, default ``256``, range ``[128, 1024]``): Max
   concurrent requests per Ior.
-- ``io_depth`` (int, default ``0``, range ``[-128, 128]``): Batch control
-  parameter.
+- ``io_depth`` (int, default ``0``, range ``[-1, 1]``): Batch control
+  parameter. Each worker has one I/O in flight per Ior, and 3FS holds an
+  Ior's I/Os until ``|io_depth|`` of them are queued, so larger values
+  would leave every store and load waiting.
 - ``numa_id`` (int, default ``-1``): NUMA node ID (``-1`` = current node).
 - ``iov_size`` (int, default ``209715200`` (200 MB), range
   ``[104857600, 2147483648]``): Per-thread I/O buffer in bytes.

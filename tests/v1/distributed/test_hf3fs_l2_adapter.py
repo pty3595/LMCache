@@ -448,19 +448,31 @@ class TestHf3fsL2AdapterConfig:
         with pytest.raises(ValueError, match="range"):
             Hf3fsL2AdapterConfig.from_dict(config_dict)
 
-    def test_invalid_io_depth_range(self, hf3fs_test_base_path):
-        """Test validation fails for io_depth outside [-128, 128]."""
+    @pytest.mark.parametrize("io_depth", [-2, 2, -128, 128])
+    def test_invalid_io_depth_range(self, hf3fs_test_base_path, io_depth):
+        """Test validation fails for io_depth outside [-1, 1].
+
+        Workers keep one I/O in flight per Ior, and 3FS holds an Ior's I/Os
+        until |io_depth| of them are queued, so these values would stall.
+        """
         config_dict = {
             "mount_point": str(hf3fs_test_base_path.parent),
             "base_paths": str(hf3fs_test_base_path),
-            "io_depth": -200,
+            "io_depth": io_depth,
         }
         with pytest.raises(ValueError, match="range"):
             Hf3fsL2AdapterConfig.from_dict(config_dict)
 
-        config_dict["io_depth"] = 200
-        with pytest.raises(ValueError, match="range"):
-            Hf3fsL2AdapterConfig.from_dict(config_dict)
+    @pytest.mark.parametrize("io_depth", [-1, 1])
+    def test_valid_io_depth(self, hf3fs_test_base_path, io_depth):
+        """Test io_depth values in [-1, 1] are accepted."""
+        config_dict = {
+            "mount_point": str(hf3fs_test_base_path.parent),
+            "base_paths": str(hf3fs_test_base_path),
+            "io_depth": io_depth,
+        }
+        config = Hf3fsL2AdapterConfig.from_dict(config_dict)
+        assert config.io_depth == io_depth
 
     def test_invalid_iov_size_range(self, hf3fs_test_base_path):
         """Test validation fails for iov_size outside [100MB, 2GB]."""

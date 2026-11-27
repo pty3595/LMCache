@@ -124,7 +124,7 @@ class Hf3fsConnector : public ConnectorBase<WorkerHf3fsConn> {
    * @param num_workers Number of worker threads (default 8)
    * @param ior_entries Max concurrent requests per Ior (default 256, range
    * [128, 1024])
-   * @param io_depth Batch control parameter (default 0, range [-128, 128])
+   * @param io_depth Batch control parameter (default 0, range [-1, 1])
    * @param numa_id NUMA node ID (default -1 = current node)
    * @param iov_size Per-thread I/O buffer size in bytes (default 200MB, range
    * [100MB, 2GB])

@@ -53,7 +53,8 @@ class Hf3fsL2AdapterConfig(L2AdapterConfigBase):
     - base_paths: Comma-separated subdirectories under mount_point (required).
     - num_workers: C++ worker threads for I/O (default 4).
     - ior_entries: Max concurrent requests per Ior (default 256, range [128, 1024]).
-    - io_depth: Batch control parameter (default 0, range [-128, 128]).
+    - io_depth: Batch control parameter (default 0, range [-1, 1]). Workers
+        keep one I/O in flight per Ior, so a larger batch never fills.
     - numa_id: NUMA node ID (default -1 = current node).
     - iov_size: Per-thread I/O buffer in bytes (default 200MB, range [100MB, 2GB]).
     - enable_key_buffer (bool): Enable in-memory key buffer for accelerated
@@ -144,8 +145,11 @@ class Hf3fsL2AdapterConfig(L2AdapterConfigBase):
             raise ValueError("ior_entries must be in range [128, 1024]")
 
         io_depth = d.get("io_depth", 0)
-        if not isinstance(io_depth, int) or not (-128 <= io_depth <= 128):
-            raise ValueError("io_depth must be in range [-128, 128]")
+        if not isinstance(io_depth, int) or not (-1 <= io_depth <= 1):
+            # Each worker submits one I/O per Ior and waits for it. 3FS holds
+            # an Ior's I/Os until |io_depth| of them are queued, so any larger
+            # value leaves every store and load waiting forever.
+            raise ValueError("io_depth must be in range [-1, 1]")
 
         numa_id = d.get("numa_id", -1)
         if not isinstance(numa_id, int):
@@ -189,7 +193,7 @@ class Hf3fsL2AdapterConfig(L2AdapterConfigBase):
             "- ior_entries (int): Max concurrent requests per Ior "
             "(default 256, range [128, 1024])\n"
             "- io_depth (int): Batch control parameter "
-            "(default 0, range [-128, 128])\n"
+            "(default 0, range [-1, 1])\n"
             "- numa_id (int): NUMA node ID (default -1 = current node)\n"
             "- iov_size (int): Per-thread I/O buffer in bytes "
             "(default 200MB, range [100MB, 2GB])\n"
