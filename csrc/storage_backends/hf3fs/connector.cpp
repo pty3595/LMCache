@@ -543,6 +543,9 @@ void Hf3fsConnector::do_single_get(WorkerHf3fsConn& conn,
  * 4. Close file and atomically rename to final path
  * 5. Update key buffer
  *
+ * With ``shard_dirs_``, a shard directory removed after this connector created
+ * it is created again, and the temporary file is opened once more.
+ *
  * @param conn Connection to use
  * @param key Key to store
  * @param buf Input buffer
@@ -558,7 +561,20 @@ void Hf3fsConnector::do_single_set(WorkerHf3fsConn& conn,
   if (shard_dirs_) {
     ensure_parent_dir_(file_path);
   }
-  open_file(conn, file_path, true);
+  try {
+    open_file(conn, file_path, true);
+  } catch (const std::system_error& e) {
+    // A shard directory created earlier can be removed later, e.g. when the
+    // cache directory is purged; create it again instead of failing every
+    // later store under it.
+    if (!shard_dirs_ || e.code() != std::errc::no_such_file_or_directory) {
+      throw;
+    }
+    created_dirs_.Erase(
+        std::filesystem::path(file_path).parent_path().string());
+    ensure_parent_dir_(file_path);
+    open_file(conn, file_path, true);
+  }
   const std::string temporary_path = conn.file_path;
   try {
     write_file(conn, conn.write_ior, conn.write_iov, buf, len);

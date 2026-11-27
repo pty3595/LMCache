@@ -171,9 +171,10 @@ the NIXL ``shard_dirs`` option uses:
     shard_dirs: true    <base_path>/3f/a2/<model>@0x<rank>@<group>@3fa2...e1.data
 
 Each subdirectory has its own lock, so stores into different subdirectories
-proceed in parallel. Subdirectories are created on first use. Choose the layout
-before populating a cache: a connector only finds files written in its own
-layout.
+proceed in parallel. Subdirectories are created on first use, and a
+subdirectory removed while the connector runs is created again by the next
+store into it. Choose the layout before populating a cache: a connector only
+finds files written in its own layout.
 
 
 **Unit Tests**
